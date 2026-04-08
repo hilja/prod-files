@@ -28,6 +28,7 @@
     "format": "oxfmt",
     "lint": "oxlint --type-check",
     "pf": "node ./index.mjs",
+    "pub": "(npm whoami || npm login) && pnpm publish --access=public --tag=latest",
     "test": "node --test",
     "test:nuke": "rm -rf ./test-project/node_modules ./test-project/pnpm-lock.yaml",
     "test:run": "cd test-project && time node ../index.mjs node_modules/.pnpm",
