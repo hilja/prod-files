@@ -684,7 +684,9 @@ export async function prune(opts) {
   return results
 }
 
-const runAsScript = process.argv[1] === import.meta.filename
+const entry = process.argv[1]
+const runAsScript =
+  entry && import.meta.filename.endsWith(entry.replace(process.cwd(), ''))
 
 if (runAsScript) {
   const args = handleArgs()
