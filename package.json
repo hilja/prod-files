@@ -1,6 +1,6 @@
 {
   "name": "prod-files",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Keep only prod files by pruning non-prod files from node_modules before deploying",
   "keywords": [
     "clean",
