@@ -1,3 +1,4 @@
+// oxlint-disable prefer-spread
 import childProcess from 'node:child_process'
 import fs from 'node:fs/promises'
 import { matchesGlob, join, isAbsolute, resolve } from 'node:path'
@@ -190,7 +191,7 @@ function usage() {
 
     -n, --noSize  Skips the size calc at the end, saves about 200-1000ms.
 
-    -q, --quiet   Quiet output, no console.log or console.info.
+    -q, --quiet   Quiet output, suppresses stdout.
 `
 
   log.log(usageText)
@@ -215,26 +216,36 @@ function bail(message, error, withUsage = false) {
 
 /**
  * @typedef {Object} Logger
- * @property {( ...args: any[] ) => void} info - Logs information messages in blue
- * @property {( ...args: any[] ) => void} log - Logs with no color
- * @property {( ...args: any[] ) => void} error - Logs error messages in red
- * @property {( ...args: any[] ) => void} success - Logs success messages in green
+ * @property {typeof console.error} error - Logs error messages in red
+ * @property {typeof console.info} info - Logs information messages in blue
+ * @property {typeof console.info} log - Logs with no color
+ * @property {typeof console.log} success - Logs success messages in green
+ * @property {typeof console.table} table - Logs as table
  */
 
-// Suppresses console.log output when --quiet is passed
-let QUIET = false
+// Quiet mode
+let quiet = /** @type {boolean} */ (false)
+
+/**
+ * @param {import('node:util').InspectColor} color
+ * @param {any[]} args
+ * @returns
+ */
+const style = (color, args) => args.map(y => styleText(color, String(y)))
 
 /**
  * A utility for styled console logs
  * @type {Logger}
  */
 export const log = {
+  error: (...x) =>
+    quiet ? undefined : console.error.apply(console, style('red', x)),
   info: (...x) =>
-    QUIET ? undefined : console.info(styleText('blue', x.join(' '))),
-  log: (...x) => (QUIET ? undefined : console.info(x.join(' '))),
-  error: (...x) => console.error(styleText('red', x.join(' '))),
+    quiet ? undefined : console.info.apply(console, style('blue', x)),
+  log: (...x) => (quiet ? undefined : console.log.apply(console, x)),
   success: (...x) =>
-    QUIET ? undefined : console.log(styleText('green', x.join(' '))),
+    quiet ? undefined : console.log.apply(console, style('green', x)),
+  table: (...x) => (quiet ? undefined : console.table.apply(console, x)),
 }
 
 /**
@@ -268,7 +279,7 @@ function calcSize(originalSize, prunedSize) {
  * @param {number | undefined} opts.originalSize
  */
 export function printDiff({ prunedSize, startTime, itemCount, originalSize }) {
-  console.table([
+  log.table([
     {
       Pruned:
         originalSize && prunedSize ? calcSize(originalSize, prunedSize) : 'n/a',
@@ -705,7 +716,8 @@ const runAsScript =
 
 if (runAsScript) {
   const args = handleArgs()
-  QUIET = args.quiet
+
+  quiet = args.quiet
 
   if (args.help) {
     usage()

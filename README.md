@@ -64,7 +64,7 @@ Flags:
 
   -n, --noSize  Skips the size calc at the end, saves about 200-1000ms.
 
-  -q, --quiet   Quiet output, no console.log or console.info.
+  -q, --quiet   Quiet output, suppresses stdout.
 ```
 
 With a package manager:
