@@ -1,0 +1,24 @@
+# Project Rules
+
+## Stack
+Node >=20.17.0, pnpm, oxlint, oxfmt, no production dependencies.
+
+## Project structure
+- `index.mjs`
+- `test.mjs`
+
+## Style
+- JavaScript with JSDoc comments
+- Add JSDoc comments to new utilities, single line comments are encouraged for
+  places with more complex logic
+- Do not end comments with a dot
+- Short but descriptive variable and function names
+- Tight but readable code
+
+## Tests
+- Node's native test runner
+- File system mocking with `memfs`
+
+## Commands
+- Tests: `pnpm test`
+- Linting and typechecking: `pnpm lint`

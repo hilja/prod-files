@@ -1,0 +1,48 @@
+{
+  "name": "prod-files",
+  "version": "0.1.0",
+  "description": "Keep only prod files by pruning non-prod files from node_modules before deploying",
+  "keywords": [
+    "clean",
+    "node_modules",
+    "prod",
+    "production",
+    "prune"
+  ],
+  "license": "MIT",
+  "author": "hilja",
+  "repository": {
+    "url": "git+https://github.com/hilja/prod-files.git"
+  },
+  "bin": {
+    "pf": "./index.mjs",
+    "prod-files": "./index.mjs"
+  },
+  "files": [
+    "index.mjs"
+  ],
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "checkUpdates": "pnpm update -L -i",
+    "format": "oxfmt",
+    "lint": "oxlint --type-check",
+    "pf": "node ./index.mjs",
+    "test": "node --test",
+    "test:nuke": "rm -rf ./test-project/node_modules ./test-project/pnpm-lock.yaml",
+    "test:run": "cd test-project && time node ../index.mjs node_modules/.pnpm",
+    "test:setup": "node --run test:nuke && pnpm -C=test-project i --prod",
+    "test:size": "du -sh ./test-project/node_modules/.pnpm | sort -h",
+    "test:watch": "node --test --watch"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.2",
+    "memfs": "4.57.1",
+    "oxfmt": "0.44.0",
+    "oxlint": "1.59.0",
+    "oxlint-tsgolint": "0.20.0"
+  },
+  "engines": {
+    "node": ">=20.17.0"
+  }
+}

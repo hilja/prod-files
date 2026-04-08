@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 80,
+  "arrowParens": "avoid",
+  "embeddedLanguageFormatting": "auto",
+  "jsxSingleQuote": true,
+  "proseWrap": "always",
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "sortImports": {},
+  "sortPackageJson": { "sortScripts": true },
+  "ignorePatterns": ["**/node_modules/**/*", "test-project/package.json"],
+  "overrides": [
+    {
+      "files": ["**/*json", "**/*jsonc"],
+      "options": { "trailingComma": "none" }
+    }
+  ]
+}

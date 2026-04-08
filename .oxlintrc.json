@@ -1,0 +1,150 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "eslint",
+    "import",
+    "node",
+    "oxc",
+    "promise",
+    "typescript",
+    "unicorn"
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "array-callback-return": "error",
+    "arrow-body-style": ["off", "as-needed"],
+    "default-case-last": "error",
+    "default-param-last": "error",
+    "eqeqeq": "error",
+    "guard-for-in": "error",
+    "no-array-constructor": "error",
+    "no-await-in-loop": "error",
+    "no-bitwise": "error",
+    "no-else-return": "error",
+    "no-empty": ["error", { "allowEmptyCatch": true }],
+    "no-eq-null": "error",
+    "no-multi-str": "error",
+    "no-restricted-globals": "error",
+    "no-restricted-imports": [
+      "error",
+      { "paths": ["@epic-web/totp", "zod-form-data", "zod", "zod/*"] }
+    ],
+    "no-script-url": "error",
+    "no-unused-vars": "warn",
+    "no-template-curly-in-string": "warn",
+    "no-useless-return": "error",
+    "no-var": "error",
+    "operator-assignment": ["error", "always"],
+    "prefer-const": ["warn", { "destructuring": "all" }],
+    "prefer-object-spread": "error",
+    "prefer-spread": "error",
+    "yoda": "warn",
+
+    // Import related rules
+    "no-duplicate-imports": ["error", { "allowSeparateTypeImports": true }],
+    "typescript/consistent-type-imports": [
+      "error",
+      {
+        "fixStyle": "inline-type-imports",
+        "disallowTypeAnnotations": false
+      }
+    ],
+
+    "import/default": "error",
+    "import/export": "error",
+    "import/extensions": ["error", "ignorePackages"],
+    "import/named": "error",
+    "import/no-absolute-path": "error",
+    "import/no-commonjs": "error",
+    "import/no-cycle": "error",
+    "import/no-empty-named-blocks": "error",
+    "import/no-self-import": "error",
+    "import/unambiguous": "error",
+
+    "oxc/branches-sharing-code": "error",
+    "oxc/misrefactored-assign-op": "error",
+    "oxc/no-accumulating-spread": "error",
+    "oxc/no-map-spread": "error",
+
+    "typescript/no-duplicate-enum-values": "off",
+    "typescript/consistent-type-exports": [
+      "error",
+      { "fixMixedExportsWithInlineTypeSpecifier": true }
+    ],
+    "typescript/no-confusing-non-null-assertion": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/no-dynamic-delete": "error",
+    "typescript/no-inferrable-types": "error",
+    "typescript/no-misused-promises": [
+      "error",
+      // No checks for void returns, `setTimeout` can take a promise callback
+      { "checksVoidReturn": { "arguments": false, "attributes": false } }
+    ],
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/unified-signatures": "off",
+    "typescript/no-base-to-string": [
+      "warn",
+      {
+        "ignoredTypeNames": [
+          "ArrayBuffer",
+          "Blob",
+          "Buffer",
+          "Error",
+          "SharedArrayBuffer"
+        ]
+      }
+    ],
+    "typescript/no-unnecessary-template-expression": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/non-nullable-type-assertion-style": "error",
+    "typescript/prefer-for-of": "error",
+    "typescript/prefer-optional-chain": "error",
+    "typescript/require-await": "error",
+    "typescript/return-await": "error",
+    "typescript/switch-exhaustiveness-check": ["error"],
+    "typescript/unbound-method": ["error", { "ignoreStatic": true }],
+
+    "unicorn/consistent-date-clone": "error",
+    "unicorn/error-message": "error",
+    "unicorn/explicit-length-check": "error",
+    "unicorn/no-negation-in-equality-check": "error",
+    "unicorn/no-useless-switch-case": "error",
+    "unicorn/number-literal-case": "error",
+    "unicorn/prefer-array-find": "error",
+    "unicorn/prefer-at": "error",
+    "unicorn/prefer-date-now": "error",
+    "unicorn/prefer-default-parameters": "warn",
+    "unicorn/prefer-global-this": "error",
+    "unicorn/prefer-module": "error",
+    "unicorn/prefer-node-protocol": "warn",
+    "unicorn/prefer-number-properties": "error",
+    "unicorn/prefer-optional-catch-binding": "error",
+    "unicorn/prefer-response-static-json": "error",
+    "unicorn/prefer-string-slice": "error",
+    "unicorn/prefer-string-trim-start-end": "error",
+    "unicorn/switch-case-braces": ["error", "avoid"],
+    "unicorn/require-number-to-fixed-digits-argument": "error",
+    "unicorn/throw-new-error": "error",
+
+    "vitest/consistent-vitest-vi": "error",
+    "vitest/hoisted-apis-on-top": "error",
+    "vitest/no-conditional-tests": "error",
+    "vitest/no-disabled-tests": "off",
+    "vitest/no-importing-vitest-globals": "error",
+    "vitest/no-standalone-expect": "error",
+    "vitest/prefer-called-once": "error",
+    "vitest/require-to-throw-message": "off"
+  },
+  "options": {
+    "reportUnusedDisableDirectives": "warn",
+    "typeAware": true
+  },
+  "env": {
+    "builtin": true,
+    "es2024": true,
+    "node": true
+  },
+  "ignorePatterns": ["**/node_modules/**/*"]
+}
