@@ -272,7 +272,7 @@ export function printDiff({ prunedSize, startTime, itemCount, originalSize }) {
 /**
  * @typedef Args
  * @type {object}
- * @property {string} path - Path to node_modules
+ * @property {string} [path] - Path to node_modules
  * @property {string[]} include - New glob pattern
  * @property {string[]} exclude - Existing glob pattern
  * @property {boolean} help - Prints help
@@ -299,7 +299,6 @@ function handleArgs() {
         noSize: { type: 'boolean', short: 'n', default: false },
       },
     })
-    if (!path) throw bail('Path not defined', undefined, true)
 
     return { ...values, path }
   } catch (err) {
@@ -645,8 +644,12 @@ export function compactPaths(paths) {
 }
 
 /**
+ * @typedef {Args & { path: string }} ArgsWithRequiredPath
+ */
+
+/**
  * Removes unneeded files from node_modules
- * @param {Args} opts
+ * @param {ArgsWithRequiredPath} opts
  */
 export async function prune(opts) {
   const startTime = Date.now()
@@ -701,6 +704,16 @@ if (runAsScript) {
     process.exit(0)
   }
 
-  await validateNodeModulesPath(args.path)
-  await prune(args)
+  // Should have a path by now
+  if (!args.path) {
+    throw bail(
+      undefined,
+      'Path not defined. Usage: prod-files <path-to-node-modules>'
+    )
+  }
+
+  const argsWithPath = /** @type {ArgsWithRequiredPath} */ (args)
+
+  await validateNodeModulesPath(argsWithPath.path)
+  await prune(argsWithPath)
 }
