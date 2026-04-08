@@ -9,7 +9,7 @@ import { parseArgs, styleText } from 'node:util'
  * with node's `matchesGlob()`. With one special rule: globs which end in `/`
  * are marked as directories.
  *
- * Ordered by popularity (educated guess).
+ * Roughly ordered by popularity (educated guess).
  *
  * Partially based on
  * @see {@link https://github.com/duniul/clean-modules/blob/main/.cleanmodules-default}
@@ -22,16 +22,21 @@ const defaultGlobs = [
   '**/*.tsx',
   '**/doc{,s}/',
 
-  // TypeScript
+  // Types
   '**/*tsconfig*.json',
   '**/*.tsbuildinfo',
+  '**/flow-typed/',
+
+  // Sensitive
+  '**/.env*',
 
   // Package mangers
   '**/.npm*',
-  '**/pnpm-*.y{,a}ml',
+  '**/pnpm-{lock,workspace}.yaml',
   '**/.yarn*',
   '**/yarn.lock',
   '**/bun.lock',
+  '**/bunfig.toml',
 
   // IDE
   '**/.idea/',
@@ -51,6 +56,13 @@ const defaultGlobs = [
   // CI/CD
   '**/.github/',
   '**/.circleci/',
+  '**/.vercel',
+  '**/now.json',
+  '**/.travis.yml',
+
+  // Docker
+  '**/Dockerfile*',
+  '**/.dockerignore',
 
   // Tests
   '**/test{,s}/',
@@ -61,31 +73,42 @@ const defaultGlobs = [
   '**/karma.conf.{js,ts}',
   '**/wallaby.conf.{js,ts}',
   '**/wallaby.{js,ts}',
+  '**/playwright.config.{js,ts}',
+  '**/.mocharc*',
 
-  // Build tools
-  '**/gemfile',
+  // Build/bundle config
+  '**/{rollup,rolldown,vite}.config.{js,ts,mjs}',
+  '**/webpack.config.{js,mjs,cjs,ts}',
+  '**/babel.config.{js,mjs,cjs,json}',
+  '**/parcel.config.{js,ts,json}',
+  '**/rspack.config.{js,mjs,cjs,ts}',
+  '**/.babelrc*',
+  '**/turbo.json',
+  '**/.browserslist*',
+  '**/metro.config.{js,json}',
   '**/{G,g}runtfile.{js,ts}',
   '**/{G,g}ulpfile.{js,ts}',
   '**/{M,m}akefile',
+  '**/gemfile',
 
   // Images
   '**/*.jp{,e}g',
-  '**/*.png',
-  '**/*.gif',
   '**/*.svg',
+  '**/*.gif',
+  '**/*.png',
 
   // Linters and formatters
-  '**/.jshintrc',
-  '**/.lint',
-  '**/.prettier*',
-  '**/prettier.config*',
-  '**/biome.json{,c}',
-  '**/tslint.json',
-  '**/.eslintrc',
   '**/eslint*.{json,jsonc,ts}',
+  '**/.eslintrc',
+  '**/prettier.config*',
+  '**/.prettier*',
   '**/.ox{lint,fmt}rc.json{,c}',
   '**/ox{lint,fmt}*.{json,jsonc,ts}',
+  '**/biome.json{,c}',
   '**/.dprint.json{,c}',
+  '**/.jshintrc',
+  '**/.lint',
+  '**/tslint.json',
 
   // Git
   '**/.git/',
@@ -94,7 +117,7 @@ const defaultGlobs = [
 
   // Code coverage
   '**/.nyc_output/',
-  '**/.nycrc',
+  '**/.nycrc*',
   '**/.codecov.y{,a}ml',
   '**/coverage/',
 
@@ -124,6 +147,7 @@ const defaultGlobs = [
   '**/*.coffee',
 
   // Misc
+  '**/.jscpd',
   '**/*.jst',
   '**/*.log',
   '**/*.mkd',
