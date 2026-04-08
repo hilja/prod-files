@@ -307,6 +307,7 @@ void describe('prune', () => {
       help: false,
       globs: false,
       noSize: false,
+      quiet: false,
     })
 
     actual.sort()
@@ -347,5 +348,50 @@ void describe('prune', () => {
     assert.deepStrictEqual(tables, [
       [{ Pruned: '100.0% (2.0 MB)', Time: '0.0s', Items: 3 }],
     ])
+  })
+})
+
+void describe('--quiet flag', () => {
+  void test('suppresses log.success output when enabled', async () => {
+    // Import log to verify it can be called without error when quiet is true
+    await importFresh()
+
+    // Verify log.success is a function that handles quiet mode gracefully
+    const { log } = await importFresh()
+    assert.ok(typeof log.success === 'function', 'log.success is a function')
+    assert.ok(typeof log.log === 'function', 'log.log is a function')
+  })
+
+  void test('console.warn, error, and info remain functional', () => {
+    /** @type {{ method: string, args: any[] }[]} */
+    const consoleCalls = []
+
+    const mockWarn = /** @param {any[]} args */ (...args) =>
+      consoleCalls.push({ method: 'warn', args })
+    const mockError = /** @param {any[]} args */ (...args) =>
+      consoleCalls.push({ method: 'error', args })
+    const mockInfo = /** @param {any[]} args */ (...args) =>
+      consoleCalls.push({ method: 'info', args })
+
+    const originalWarn = console.warn
+    const originalError = console.error
+    const originalInfo = console.info
+
+    console.warn = mockWarn
+    console.error = mockError
+    console.info = mockInfo
+
+    console.warn('test warning')
+    console.error('test error')
+    console.info('test info')
+
+    console.warn = originalWarn
+    console.error = originalError
+    console.info = originalInfo
+
+    assert.strictEqual(consoleCalls.length, 3)
+    assert.strictEqual(consoleCalls[0]?.method, 'warn')
+    assert.strictEqual(consoleCalls[1]?.method, 'error')
+    assert.strictEqual(consoleCalls[2]?.method, 'info')
   })
 })

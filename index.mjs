@@ -189,9 +189,11 @@ function usage() {
     -g, --globs   Prints out the default globs.
 
     -n, --noSize  Skips the size calc at the end, saves about 200-1000ms.
+
+    -q, --quiet   Quiet output, no console.log or console.info.
 `
 
-  console.log(usageText)
+  log.log(usageText)
 }
 
 /**
@@ -214,18 +216,25 @@ function bail(message, error, withUsage = false) {
 /**
  * @typedef {Object} Logger
  * @property {( ...args: any[] ) => void} info - Logs information messages in blue
+ * @property {( ...args: any[] ) => void} log - Logs with no color
  * @property {( ...args: any[] ) => void} error - Logs error messages in red
  * @property {( ...args: any[] ) => void} success - Logs success messages in green
  */
+
+// Suppresses console.log output when --quiet is passed
+let QUIET = false
 
 /**
  * A utility for styled console logs
  * @type {Logger}
  */
-const log = {
-  info: (...x) => console.info(styleText('blue', x.join(' '))),
+export const log = {
+  info: (...x) =>
+    QUIET ? undefined : console.info(styleText('blue', x.join(' '))),
+  log: (...x) => (QUIET ? undefined : console.info(x.join(' '))),
   error: (...x) => console.error(styleText('red', x.join(' '))),
-  success: (...x) => console.log(styleText('green', x.join(' '))),
+  success: (...x) =>
+    QUIET ? undefined : console.log(styleText('green', x.join(' '))),
 }
 
 /**
@@ -278,12 +287,14 @@ export function printDiff({ prunedSize, startTime, itemCount, originalSize }) {
  * @property {boolean} help - Prints help
  * @property {boolean} noSize - Don't show size savings
  * @property {boolean} globs - Prints globs
+ * @property {boolean} quiet - Suppress console.log output
  */
 
 /**
  * Parse the command-line arguments into an object
  * @returns {Args}
  */
+
 function handleArgs() {
   try {
     const {
@@ -297,6 +308,7 @@ function handleArgs() {
         help: { type: 'boolean', short: 'h', default: false },
         globs: { type: 'boolean', short: 'g', default: false },
         noSize: { type: 'boolean', short: 'n', default: false },
+        quiet: { type: 'boolean', short: 'q', default: false },
       },
     })
 
@@ -693,6 +705,7 @@ const runAsScript =
 
 if (runAsScript) {
   const args = handleArgs()
+  QUIET = args.quiet
 
   if (args.help) {
     usage()
@@ -700,7 +713,7 @@ if (runAsScript) {
   }
 
   if (args.globs) {
-    console.log(JSON.stringify(defaultGlobs, null, 2))
+    log.log(JSON.stringify(defaultGlobs, null, 2))
     process.exit(0)
   }
 
