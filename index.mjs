@@ -305,8 +305,8 @@ function calcSize(originalSize, prunedSize) {
 export function printDiff({ prunedSize, startTime, itemCount, originalSize }) {
   log.table([
     {
-      Pruned:
-        originalSize && prunedSize ? calcSize(originalSize, prunedSize) : 'n/a',
+      ...(originalSize &&
+        prunedSize && { Pruned: calcSize(originalSize, prunedSize) }),
       Time: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
       Items: itemCount,
     },
