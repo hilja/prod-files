@@ -231,21 +231,21 @@ let quiet = /** @type {boolean} */ (false)
  * @param {any[]} args
  * @returns
  */
-const style = (color, args) => args.map(y => styleText(color, String(y)))
+const style = (color, args) => args.map(a => styleText(color, String(a)))
 
 /**
  * A utility for styled console logs
  * @type {Logger}
  */
 export const log = {
-  error: (...x) =>
-    quiet ? undefined : console.error.apply(console, style('red', x)),
-  info: (...x) =>
-    quiet ? undefined : console.info.apply(console, style('blue', x)),
-  log: (...x) => (quiet ? undefined : console.log.apply(console, x)),
-  success: (...x) =>
-    quiet ? undefined : console.log.apply(console, style('green', x)),
-  table: (...x) => (quiet ? undefined : console.table.apply(console, x)),
+  error: (...a) =>
+    quiet ? undefined : console.error.apply(console, style('red', a)),
+  info: (...a) =>
+    quiet ? undefined : console.info.apply(console, style('blue', a)),
+  log: (...a) => (quiet ? undefined : console.log.apply(console, a)),
+  success: (...a) =>
+    quiet ? undefined : console.log.apply(console, style('green', a)),
+  table: (...a) => (quiet ? undefined : console.table.apply(console, a)),
 }
 
 /**
