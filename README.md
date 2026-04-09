@@ -124,42 +124,41 @@ RUN node pf.js my-app/foo/node_modules/.pnpm
 
 ## Development
 
+```sh
+pnpm i
+```
+
+### Unit tests
+
 Unit tests are written with node's test utils.
 
 ```sh
 pnpm test
 ```
 
-There's also a `test-project` directory with dummy `package.json` with some
-random deps. You can run the script against it to see how it fairs in real usage
-and get some timing data.
+### End to end tests
 
-Set it up:
+In `test-project` directory has Sentry's `package.json`. You can run the script
+against it to see how it fairs in real-world use and get some timing data.
 
 ```sh
-pnpm test:setup
+# Re-installs the packages and runs the script on it
+pnpm test:e2e
+# Disable size reportings since it's pretty slow
+pnpm test:e2e --noSize
 ```
 
-Run `prod-files` on it:
+The nuke command removes `node_modules` and prunes the store:
 
 ```sh
-pnpm test:prune
+pnpm test:e2e:nuke
 ```
 
-It uses the real file system, so you need to reset it with `pnpm test:setup`
-before running another test.
-
-Or chain it for ease of use (with timing):
+There's also a simple script to print the weight of `test-project/node_modules/`
+using `du`. You can run it before and after to see more detailed results:
 
 ```sh
-pnpm test:setup && time pnpm test:prune
-```
-
-There's also a simple script to print the size of `test-project/node_modules/`
-using `du`:
-
-```sh
-pnpm test:size
+pnpm test:e2e:weight
 ```
 
 ## Prior art

@@ -30,11 +30,9 @@
     "pf": "node ./index.mjs",
     "pub": "(npm whoami || npm login) && pnpm publish --access=public --tag=latest",
     "test": "node --test",
-    "test:nuke": "rm -rf ./test-project/node_modules",
-    "test:run": "cd test-project && time node ../index.mjs node_modules/.pnpm",
-    "test:setup": "node --run test:nuke && pnpm -C=test-project i --prod",
-    "test:size": "du -sh ./test-project/node_modules/.pnpm | sort -h",
-    "test:watch": "node --test --watch"
+    "test:e2e": "cd test-project && bash prepare_test.sh && time node ../index.mjs node_modules/.pnpm",
+    "test:e2e:nuke": "trash ./test-project/node_modules ./test-project/pnpm-lock.yaml && pnpm store prune",
+    "test:e2e:weight": "du -sh ./test-project/node_modules/.pnpm | sort -h"
   },
   "devDependencies": {
     "@types/node": "25.5.2",
