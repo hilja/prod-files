@@ -101,15 +101,17 @@ RUN pnpm fetch
 COPY . ./
 RUN pnpm i --offline --frozen-lockfile
 RUN pnpm build
-RUN pnpm -F=foo --prod deploy /my-app/foo
+RUN pnpm -F=foo --prod deploy /foo
 # Run it as the last command of the build step. NOTE: if you installed with
 # --prod flag, prod-files needs to be a prod dep. Or use pnpx/npx/yarn dlx
-RUN pnpm prod-files my-app/foo/node_modules/.pnpm
+WORKDIR /foo
+RUN pnpm prod-files node_modules/.pnpm --noSize
 
 # Enjoy your new slimmer image
 FROM node:lts-alpine3.19 AS foo
-COPY --from=base /my-app/foo /my-app/foo
-WORKDIR /myapp/foo
+COPY --from=base foo/build /foo/build
+COPY --from=base foo/node_modules /foo/node_modules
+WORKDIR /foo
 CMD node build/server.js
 ```
 
