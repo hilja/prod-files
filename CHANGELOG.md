@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Use a custom walker, about 16% faster
+
 ## 0.1.3
 
 - Remove directories which were left empty after pruning
