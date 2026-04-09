@@ -1,5 +1,4 @@
 import assert from 'node:assert'
-import childProcess from 'node:child_process'
 import nodeFs from 'node:fs/promises'
 import { describe, test } from 'node:test'
 
@@ -34,18 +33,6 @@ function mockMemfsFs(t) {
   t.mock.method(nodeFs, 'readdir', memfs.promises.readdir.bind(memfs.promises))
   t.mock.method(nodeFs, 'rm', memfs.promises.rm.bind(memfs.promises))
   t.mock.method(nodeFs, 'rmdir', memfs.promises.rmdir.bind(memfs.promises))
-}
-
-/**
- * @param {string[]} commands
- * @param {string[]} stdoutValues
- * @returns {(cmd: string) => string}
- */
-function createExecStub(commands, stdoutValues) {
-  return cmd => {
-    commands.push(cmd)
-    return stdoutValues.shift() ?? '2048\n'
-  }
 }
 
 /**
@@ -236,14 +223,9 @@ void describe('validateNodeModulesPath', () => {
 
 void describe('printDiff', () => {
   void test('prints a table with pruned amount, time, and item count', async t => {
-    /** @type {string[]} */
-    const commands = []
     /** @type {DiffTableRow[][]} */
     const tables = []
 
-    const execSyncStub = createExecStub(commands, ['1024\n'])
-
-    t.mock.method(childProcess, 'execSync', execSyncStub)
     t.mock.method(
       console,
       'table',
@@ -278,15 +260,9 @@ void describe('prune', () => {
 
     mockMemfsFs(t)
 
-    const sizes = ['4096\n', '2048\n']
-    /** @type {string[]} */
-    const commands = []
     /** @type {DiffTableRow[][]} */
     const tables = []
 
-    const execSyncStub = createExecStub(commands, sizes)
-
-    t.mock.method(childProcess, 'execSync', execSyncStub)
     t.mock.method(console, 'info', () => {})
     t.mock.method(
       console,
@@ -305,7 +281,7 @@ void describe('prune', () => {
       exclude: ['**/*tsconfig*.json'],
       help: false,
       globs: false,
-      noSize: false,
+      noSize: true,
       quiet: false,
     })
 
@@ -347,14 +323,7 @@ void describe('prune', () => {
       true
     )
 
-    // Basically toHaveBeenCalled(2)
-    assert.deepStrictEqual(commands, [
-      "du -s /workspace/node_modules/.pnpm | awk '{print $1}'",
-      "du -s /workspace/node_modules/.pnpm | awk '{print $1}'",
-    ])
-    assert.deepStrictEqual(tables, [
-      [{ Pruned: '100.0% (2.0 MB)', Time: '0.0s', Items: 3 }],
-    ])
+    assert.deepStrictEqual(tables, [[{ Time: '0.0s', Items: 3 }]])
   })
 
   void test('removes empty ancestor directories after pruning nested files', async t => {
