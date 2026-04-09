@@ -33,6 +33,7 @@ function mockMemfsFs(t) {
   t.mock.method(nodeFs, 'access', memfs.promises.access.bind(memfs.promises))
   t.mock.method(nodeFs, 'readdir', memfs.promises.readdir.bind(memfs.promises))
   t.mock.method(nodeFs, 'rm', memfs.promises.rm.bind(memfs.promises))
+  t.mock.method(nodeFs, 'rmdir', memfs.promises.rmdir.bind(memfs.promises))
 }
 
 /**
@@ -261,9 +262,7 @@ void describe('printDiff', () => {
       originalSize: undefined,
     })
 
-    assert.deepStrictEqual(tables, [
-      [{ Pruned: 'n/a', Time: '3.0s', Items: 3 }],
-    ])
+    assert.deepStrictEqual(tables, [[{ Time: '3.0s', Items: 3 }]])
   })
 })
 
@@ -327,7 +326,15 @@ void describe('prune', () => {
       false
     )
     assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/__tests__'),
+      false
+    )
+    assert.strictEqual(
       memfs.existsSync('/workspace/node_modules/.pnpm/pkg/__tests__/index.js'),
+      false
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg'),
       false
     )
 
@@ -348,6 +355,99 @@ void describe('prune', () => {
     assert.deepStrictEqual(tables, [
       [{ Pruned: '100.0% (2.0 MB)', Time: '0.0s', Items: 3 }],
     ])
+  })
+
+  void test('removes empty ancestor directories after pruning nested files', async t => {
+    seedMemfs({
+      '/workspace/node_modules/.pnpm/keep.js': '',
+      '/workspace/node_modules/.pnpm/pkg/a/b/file.custom': '',
+    })
+
+    mockMemfsFs(t)
+    t.mock.method(console, 'info', () => {})
+    t.mock.method(console, 'table', () => {})
+
+    const { prune } = await importFresh()
+
+    const actual = await prune({
+      path: '/workspace/node_modules/.pnpm',
+      include: ['**/*.custom'],
+      exclude: [],
+      help: false,
+      globs: false,
+      noSize: true,
+      quiet: false,
+    })
+
+    assert.deepStrictEqual(actual, [
+      '/workspace/node_modules/.pnpm/pkg/a/b/file.custom',
+    ])
+
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/a/b/file.custom'),
+      false
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/a/b'),
+      false
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/a'),
+      false
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg'),
+      false
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/keep.js'),
+      true
+    )
+  })
+
+  void test('stops empty dir cleanup at the first non-empty parent', async t => {
+    seedMemfs({
+      '/workspace/node_modules/.pnpm/keep.js': '',
+      '/workspace/node_modules/.pnpm/pkg/a/b/file.custom': '',
+      '/workspace/node_modules/.pnpm/pkg/package.json': '{}',
+    })
+
+    mockMemfsFs(t)
+    t.mock.method(console, 'info', () => {})
+    t.mock.method(console, 'table', () => {})
+
+    const { prune } = await importFresh()
+
+    await prune({
+      path: '/workspace/node_modules/.pnpm',
+      include: ['**/*.custom'],
+      exclude: [],
+      help: false,
+      globs: false,
+      noSize: true,
+      quiet: false,
+    })
+
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/a/b/file.custom'),
+      false
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/a/b'),
+      false
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/a'),
+      false
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg'),
+      true
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/package.json'),
+      true
+    )
   })
 })
 
