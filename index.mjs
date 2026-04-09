@@ -1,8 +1,10 @@
 // oxlint-disable prefer-spread
-import childProcess from 'node:child_process'
+import cp from 'node:child_process'
 import fs from 'node:fs/promises'
 import { matchesGlob, join, isAbsolute, resolve, dirname } from 'node:path'
-import { parseArgs, styleText } from 'node:util'
+import { parseArgs, promisify, styleText } from 'node:util'
+
+const exec = promisify(cp.exec)
 
 /**
  * A list of glob patterns for files/dirs to be deleted. The globs are matched
@@ -275,11 +277,13 @@ export const log = {
 /**
  * Get size of node_modules
  * @param {string} dirPath - Path to node_modules
- * @returns {number}
+ * @returns {Promise<number>}
  */
-function getSize(dirPath) {
-  const stdout = childProcess.execSync(`du -s ${dirPath} | awk '{print $1}'`)
-  return Number(stdout)
+async function getSize(dirPath) {
+  const { stdout, stderr } = await exec(`LC_ALL=C du -s ${dirPath}`)
+  if (stderr.length > 0) bail(stderr)
+  const size = stdout.split('\t')[0]
+  return size ? Number.parseInt(size, 10) : 0
 }
 
 /**
@@ -297,16 +301,25 @@ function calcSize(originalSize, prunedSize) {
 /**
  * Prints a nice diff table
  * @param {object} opts
- * @param {number | undefined} opts.prunedSize
+ * @param {Promise<number> | undefined} opts.prunedSize
  * @param {number} opts.startTime
  * @param {number} opts.itemCount
- * @param {number | undefined} opts.originalSize
+ * @param {Promise<number> | undefined} opts.originalSize
  */
-export function printDiff({ prunedSize, startTime, itemCount, originalSize }) {
+export async function printDiff({
+  prunedSize,
+  startTime,
+  itemCount,
+  originalSize,
+}) {
+  const [original, pruned] =
+    originalSize && prunedSize
+      ? await Promise.all([originalSize, prunedSize])
+      : [undefined, undefined]
+
   log.table([
     {
-      ...(originalSize &&
-        prunedSize && { Pruned: calcSize(originalSize, prunedSize) }),
+      ...(original && pruned && { Pruned: calcSize(original, pruned) }),
       Time: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
       Items: itemCount,
     },
@@ -757,7 +770,8 @@ export async function prune(opts) {
   const startTime = Date.now()
   log.info('Pruning:', opts.path)
 
-  const originalSize = opts.noSize ? undefined : getSize(opts.path)
+  // Don't wait
+  const originalSize = getSize(opts.path)
   const excludedGlobs = new Set(opts.exclude)
   const activeGlobs = [...defaultGlobs, ...opts.include].filter(
     glob => !excludedGlobs.has(glob)
@@ -798,10 +812,10 @@ export async function prune(opts) {
     throw bail(undefined, err)
   }
 
-  printDiff({
+  void printDiff({
     itemCount: junk.length,
     prunedSize: opts.noSize ? undefined : getSize(opts.path),
-    originalSize,
+    originalSize: opts.noSize ? undefined : originalSize,
     startTime,
   })
 
