@@ -1,7 +1,7 @@
 // oxlint-disable prefer-spread
 import cp from 'node:child_process'
 import fs from 'node:fs/promises'
-import { matchesGlob, join, isAbsolute, resolve, dirname } from 'node:path'
+import { matchesGlob, join, isAbsolute, resolve } from 'node:path'
 import { parseArgs, promisify, styleText } from 'node:util'
 
 const exec = promisify(cp.exec)
@@ -215,7 +215,7 @@ function usage() {
 
     -g, --globs   Prints out the default globs.
 
-    -n, --noSize  Skips the size calc at the end, saves about 200-1000ms.
+    -n, --noSize  Skips the size calculation.
 
     -q, --quiet   Quiet output, suppresses stdout.
 `
@@ -275,8 +275,8 @@ export const log = {
 }
 
 /**
- * Get size of node_modules
- * @param {string} dirPath - Path to node_modules
+ * Get disk usage via du (512-byte blocks)
+ * @param {string} dirPath
  * @returns {Promise<number>}
  */
 async function getSize(dirPath) {
@@ -284,6 +284,28 @@ async function getSize(dirPath) {
   if (stderr.length > 0) bail(stderr)
   const size = stdout.split('\t')[0]
   return size ? Number.parseInt(size, 10) : 0
+}
+
+/**
+ * Sums disk usage of a path using lstat blocks (512-byte blocks, same as du)
+ * @param {string} path
+ * @returns {Promise<number>} Total in 512-byte blocks
+ */
+async function treeSize(path) {
+  /** @type {import('node:fs').Stats} */
+  let stat
+  try {
+    stat = await fs.lstat(path)
+  } catch {
+    // Entry disappeared (concurrent pruning), count as 0
+    return 0
+  }
+  if (!stat.isDirectory()) return stat.blocks
+  const names = await fs.readdir(path).catch(() => [])
+  const sizes = await Promise.all(names.map(n => treeSize(join(path, n))))
+  let total = 0
+  for (const s of sizes) total += s
+  return total
 }
 
 /**
@@ -301,25 +323,23 @@ function calcSize(originalSize, prunedSize) {
 /**
  * Prints a nice diff table
  * @param {object} opts
- * @param {Promise<number> | undefined} opts.prunedSize
+ * @param {number | undefined} opts.removedBytes
  * @param {number} opts.startTime
  * @param {number} opts.itemCount
- * @param {Promise<number> | undefined} opts.originalSize
+ * @param {number | undefined} opts.originalSize
  */
-export async function printDiff({
-  prunedSize,
+export function printDiff({
+  removedBytes,
   startTime,
   itemCount,
   originalSize,
 }) {
-  const [original, pruned] =
-    originalSize && prunedSize
-      ? await Promise.all([originalSize, prunedSize])
-      : [undefined, undefined]
-
   log.table([
     {
-      ...(original && pruned && { Pruned: calcSize(original, pruned) }),
+      ...(originalSize &&
+        removedBytes && {
+          Pruned: calcSize(originalSize, originalSize - removedBytes),
+        }),
       Time: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
       Items: itemCount,
     },
@@ -696,66 +716,101 @@ export function compactPaths(paths) {
 }
 
 /**
- * Checks the rmdir error: ENOTEMPTY means the dir was not empty and the removal
- * failed, which is what we want
- * @param {unknown} err
- * @returns {boolean}
+ * @typedef {object} WalkResult
+ * @property {string[]} removed - Compacted list of removed paths
+ * @property {number} removedBlocks - Removed disk usage in 512-byte blocks
  */
-function hasContent(err) {
-  return (
-    !!err &&
-    typeof err === 'object' &&
-    'code' in err &&
-    (err.code === 'ENOTEMPTY' || err.code === 'ENOENT')
-  )
-}
 
 /**
- * Removes a dir if it's empty
- * @param {string[]} dirs
- * @returns {Promise<void>[]}
+ * Parallel walker that finds junk, removes it, and cleans empty dirs in one
+ * pass. Skips recursing into junk directories (implicit path compacting) and
+ * removes empty ancestors bottom-up as the recursion unwinds.
+ * @param {string} rootDir - The directory to walk
+ * @param {CompiledGlobs} compiledGlobs - Precompiled glob matchers
+ * @param {boolean} trackSize - Whether to collect byte sizes of removed items
+ * @returns {Promise<WalkResult>}
  */
-function rmEmptyDir(dirs) {
-  return dirs.map(dir =>
-    fs.rmdir(dir).catch(err => {
-      if (hasContent(err)) return
-      throw err
-    })
-  )
-}
+async function walkAndPrune(rootDir, compiledGlobs, trackSize) {
+  /** @type {string[]} */
+  const removed = []
+  let removedBlocks = 0
+  const hasAnyGlobs = compiledGlobs.any.globs.length > 0
+  const hasDirGlobs = compiledGlobs.dir.globs.length > 0
 
-/**
- * Removes a file and collects parent directories for later cleanup
- * @param {string} file - the file to remove
- * @param {Set<string>} visited - tracks directories we've already visited
- * @param {Map<number, Set<string>>} dirDepths - cleanup dirs grouped by depth
- * @param {string} rootDir - stop collecting once we reach this directory
- */
-async function rimraf(
-  file,
-  visited = new Set(),
-  dirDepths = new Map(),
-  rootDir = dirname(file)
-) {
-  // Remove the file/dir recursively
-  await fs.rm(file, { recursive: true, force: true })
+  /**
+   * Walks a directory in parallel, removes junk, and reports whether the
+   * directory still has content so the caller can clean up empty parents
+   * @param {string} dir
+   * @returns {Promise<boolean>} true when the directory still has content
+   */
+  async function walkDir(dir) {
+    const entries = await fs.readdir(dir, { withFileTypes: true })
 
-  // Walk up the tree collecting all the ancestors, we'll use them later on to
-  // delete directories which are left empty
-  let dir = dirname(file)
-  while (dir !== rootDir) {
-    if (visited.has(dir)) break
-    visited.add(dir)
+    /** @type {string[]} */
+    const junkPaths = []
+    /** @type {string[]} */
+    const keptDirPaths = []
+    let keptFiles = 0
 
-    const depth = dir.split('/').length
+    for (const entry of entries) {
+      const { name } = entry
+      const isDir = entry.isDirectory()
+      const path = join(dir, name)
 
-    // Group the dirs by depth
-    const dirs = dirDepths.get(depth)
-    if (dirs) dirs.add(dir)
-    else dirDepths.set(depth, new Set([dir]))
+      // Basename checks are cheapest, try them first
+      if (
+        matchesSet(name, compiledGlobs.any) ||
+        (isDir && matchesSet(name, compiledGlobs.dir))
+      ) {
+        junkPaths.push(path)
+        continue
+      }
 
-    dir = dirname(dir)
+      // Full path glob checks only when compiled globs exist
+      if (hasAnyGlobs || (isDir && hasDirGlobs)) {
+        const escapedPath = escapeLeadingDots(isDir ? `${path}/` : path)
+        if (
+          compiledGlobs.any.globs.some(g => matchesGlob(escapedPath, g)) ||
+          (isDir &&
+            compiledGlobs.dir.globs.some(g => matchesGlob(escapedPath, g)))
+        ) {
+          junkPaths.push(path)
+          continue
+        }
+      }
+
+      if (isDir) keptDirPaths.push(path)
+      else keptFiles += 1
+    }
+
+    // Collect removed paths before awaiting (no junk dir recursion = compacting)
+    for (const p of junkPaths) removed.push(p)
+
+    // Size (when tracking), remove junk, and recurse kept subdirs in parallel
+    const [junkSizes, walkResults] = await Promise.all([
+      Promise.all(
+        junkPaths.map(async p => {
+          const size = trackSize ? await treeSize(p) : 0
+          await fs.rm(p, { recursive: true, force: true })
+          return size
+        })
+      ),
+      Promise.all(keptDirPaths.map(walkDir)),
+    ])
+
+    for (const s of junkSizes) removedBlocks += s
+
+    // Subdirs that became empty after pruning their contents
+    const emptyDirs = keptDirPaths.filter((_, i) => !walkResults[i])
+    if (emptyDirs.length > 0) {
+      await Promise.all(emptyDirs.map(d => fs.rmdir(d)))
+    }
+
+    return keptFiles + keptDirPaths.length - emptyDirs.length > 0
   }
+
+  await walkDir(rootDir)
+  return { removed, removedBlocks }
 }
 
 /**
@@ -770,56 +825,30 @@ export async function prune(opts) {
   const startTime = Date.now()
   log.info('Pruning:', opts.path)
 
-  // Don't wait
-  const originalSize = getSize(opts.path)
+  // Fire early so du runs concurrently with the walk
+  const sizePromise = opts.noSize ? undefined : getSize(opts.path)
   const excludedGlobs = new Set(opts.exclude)
   const activeGlobs = [...defaultGlobs, ...opts.include].filter(
     glob => !excludedGlobs.has(glob)
   )
   const compiledGlobs = compileGlobs(activeGlobs)
 
-  // TODO: this could be slightly faster with an optimized walker
-  const allFiles = await fs.readdir(opts.path, {
-    recursive: true,
-    withFileTypes: true,
-  })
-
-  const junk = compactPaths(findJunkFiles(allFiles, compiledGlobs))
-
+  /** @type {WalkResult} */
+  let result
   try {
-    /** @type {Set<string>} */
-    const visited = new Set()
-    /** @type {Map<number, Set<string>>} */
-    const dirDepths = new Map()
-    // Rm & populate visited & dirDepths so dirs can be removed in parallel
-    await Promise.all(junk.map(x => rimraf(x, visited, dirDepths, opts.path)))
-    const depths = [...dirDepths.keys()].sort((a, b) => b - a)
-
-    /**
-     * Remove one depth level at a time, but parallelize within each level
-     * @param {number} i
-     * @returns {Promise<void>}
-     */
-    async function removeDepth(i) {
-      if (i >= depths.length) return
-      const dirs = dirDepths.get(depths[i] || 0) ?? []
-      await Promise.all(rmEmptyDir([...dirs]))
-      await removeDepth(i + 1)
-    }
-
-    await removeDepth(0)
+    result = await walkAndPrune(opts.path, compiledGlobs, !opts.noSize)
   } catch (err) {
     throw bail(undefined, err)
   }
 
-  void printDiff({
-    itemCount: junk.length,
-    prunedSize: opts.noSize ? undefined : getSize(opts.path),
-    originalSize: opts.noSize ? undefined : originalSize,
+  printDiff({
+    itemCount: result.removed.length,
+    removedBytes: opts.noSize ? undefined : result.removedBlocks,
+    originalSize: sizePromise ? await sizePromise : undefined,
     startTime,
   })
 
-  return junk
+  return result.removed
 }
 
 const entry = process.argv[1]

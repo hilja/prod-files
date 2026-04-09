@@ -11,7 +11,7 @@ projects, or you’re just obsessed with small deployments.
 
 It's relatively fast, prunes
 [Sentry's `node_modules`](https://github.com/getsentry/sentry/blob/master/package.json)
-in 2.1s (M2 MacBook). Prod deps only though, installed with `pnpm i --prod`, but
+in 1.8s (M2 MacBook). Prod deps only though, installed with `pnpm i --prod`, but
 that's the common use-case anyway.
 
 ## Install
@@ -62,7 +62,7 @@ Flags:
 
   -g, --globs   Prints out the default globs.
 
-  -n, --noSize  Skips the size calc at the end, saves about 200-1000ms.
+  -n, --noSize  Skips the size calculation.
 
   -q, --quiet   Quiet output, suppresses stdout.
 ```
@@ -139,12 +139,12 @@ pnpm test
 ### End to end tests
 
 In `test-project` directory has Sentry's `package.json`. You can run the script
-against it to see how it fairs in real-world use and get some timing data.
+against it to see how it does in real-world use and get some timing data.
 
 ```sh
 # Re-installs the packages and runs the script on it
 pnpm test:e2e
-# Disable size reportings since it's pretty slow
+# Disable size reportings since it adds 200-300ms
 pnpm test:e2e --noSize
 ```
 

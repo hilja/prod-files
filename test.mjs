@@ -238,7 +238,7 @@ void describe('printDiff', () => {
     const { printDiff } = await importFresh()
 
     printDiff({
-      prunedSize: undefined,
+      removedBytes: undefined,
       startTime: 1000,
       itemCount: 3,
       originalSize: undefined,
