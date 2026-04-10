@@ -303,7 +303,8 @@ void describe('prune', () => {
       include: ['**/*.custom'],
       exclude: ['**/*tsconfig*.json'],
       help: false,
-      globs: false,
+      showGlobs: false,
+      noGlobs: false,
       noSize: true,
       quiet: false,
     })
@@ -366,7 +367,8 @@ void describe('prune', () => {
       include: ['**/*.custom'],
       exclude: [],
       help: false,
-      globs: false,
+      showGlobs: false,
+      noGlobs: false,
       noSize: true,
       quiet: false,
     })
@@ -415,7 +417,8 @@ void describe('prune', () => {
       include: ['**/*.custom'],
       exclude: [],
       help: false,
-      globs: false,
+      showGlobs: false,
+      noGlobs: false,
       noSize: true,
       quiet: false,
     })
@@ -438,6 +441,60 @@ void describe('prune', () => {
     )
     assert.strictEqual(
       memfs.existsSync('/workspace/node_modules/.pnpm/pkg/package.json'),
+      true
+    )
+  })
+
+  void test('exclude has no effect when noGlobs is active', async t => {
+    seedMemfs({
+      '/workspace/node_modules/.pnpm/foo.ts': '',
+      '/workspace/node_modules/.pnpm/custom.custom': '',
+      '/workspace/node_modules/.pnpm/pkg/index.js': '',
+      '/workspace/node_modules/.pnpm/pkg/a/b/file.custom': '',
+      '/workspace/node_modules/.pnpm/pkg/package.json': '{}',
+    })
+
+    mockMemfsFs(t)
+    t.mock.method(console, 'info', () => {})
+    t.mock.method(console, 'table', () => {})
+
+    const { prune } = await importFresh()
+
+    // With noGlobs active, exclude patterns should be ignored
+    // Only custom pattern from include should be used
+    const actual = await prune({
+      path: '/workspace/node_modules/.pnpm',
+      include: ['**/*.custom'],
+      exclude: ['**/*.js'],
+      help: false,
+      showGlobs: false,
+      noGlobs: true,
+      noSize: true,
+      quiet: false,
+    })
+
+    // Should only match the custom files, .js files should NOT be excluded
+    // because exclude is ignored when noGlobs is true
+    assert.deepStrictEqual(actual, [
+      '/workspace/node_modules/.pnpm/custom.custom',
+      '/workspace/node_modules/.pnpm/pkg/a/b/file.custom',
+    ])
+
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/custom.custom'),
+      false
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/a/b/file.custom'),
+      false
+    )
+    // .js files should still exist because they weren't matched by include
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/foo.ts'),
+      true
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/index.js'),
       true
     )
   })

@@ -228,7 +228,11 @@ function usage() {
 
     -h, --help    Prints out the help.
 
-    -g, --globs   Prints out the default globs.
+    -g, --showGlobs
+                  Prints out the default globs.
+
+    --noGlobs     Disable default glob patterns, only use patterns from
+                  --include.
 
     -n, --noSize  Skips the size calculation.
 
@@ -367,8 +371,9 @@ export function printDiff({
  * @property {string[]} include - New glob pattern
  * @property {string[]} exclude - Existing glob pattern
  * @property {boolean} help - Prints help
+ * @property {boolean} showGlobs - Prints globs
+ * @property {boolean} noGlobs - Disable default glob patterns
  * @property {boolean} noSize - Don't show size savings
- * @property {boolean} globs - Prints globs
  * @property {boolean} quiet - Suppress console.log output
  */
 
@@ -387,7 +392,8 @@ function handleArgs() {
         include: { type: 'string', short: 'i', default: [], multiple: true },
         exclude: { type: 'string', short: 'e', default: [], multiple: true },
         help: { type: 'boolean', short: 'h', default: false },
-        globs: { type: 'boolean', short: 'g', default: false },
+        showGlobs: { type: 'boolean', short: 'g', default: false },
+        noGlobs: { type: 'boolean', default: false },
         noSize: { type: 'boolean', short: 'n', default: false },
         quiet: { type: 'boolean', short: 'q', default: false },
       },
@@ -811,9 +817,10 @@ export async function prune(opts) {
   // Fire early so du runs concurrently with the walk
   const sizePromise = opts.noSize ? undefined : getSize(opts.path)
   const excludedGlobs = new Set(opts.exclude)
-  const activeGlobs = [...defaultGlobs, ...opts.include].filter(
-    glob => !excludedGlobs.has(glob)
-  )
+  const activeGlobs = [
+    ...(opts.noGlobs ? [] : defaultGlobs),
+    ...opts.include,
+  ].filter(glob => !excludedGlobs.has(glob))
   const compiledGlobs = compileGlobs(activeGlobs)
 
   /** @type {WalkResult} */
@@ -848,7 +855,7 @@ if (runAsScript) {
     process.exit(0)
   }
 
-  if (args.globs) {
+  if (args.showGlobs) {
     log.log(JSON.stringify(defaultGlobs, null, 2))
     process.exit(0)
   }
