@@ -21,13 +21,16 @@ const defaultGlobs = [
   '**/*.md',
   '**/*.map',
   '**/*.{,m,c}ts',
-  '**/*.tsx',
+  '**/*.{j,t}sx',
   '**/doc{,s}/',
 
   // Types
   '**/*tsconfig*.json',
   '**/*.tsbuildinfo',
   '**/flow-typed/',
+  '**/.flowconfig',
+  '**/*.flow',
+  '**/__typings__/',
 
   // Sensitive
   '**/.env*',
@@ -39,6 +42,8 @@ const defaultGlobs = [
   '**/yarn.lock',
   '**/bun.lock',
   '**/bunfig.toml',
+  '**/bower.json',
+  '**/node_modules/.bin/',
 
   // IDE
   '**/.idea/',
@@ -54,6 +59,7 @@ const defaultGlobs = [
   '**/contributing',
   '**/CONTRIBUTORS',
   '**/contributors',
+  '**/node_modules/**/man/',
 
   // CI/CD
   '**/.github/',
@@ -69,6 +75,7 @@ const defaultGlobs = [
   // Tests
   '**/test{,s}/',
   '**/spec{,s}/',
+  '**/**.{test,spec}.{js,mjs}',
   '**/__{mocks,tests}__/',
   '**/jest.*.{js,ts}',
   '**/vitest.*.ts',
@@ -77,6 +84,8 @@ const defaultGlobs = [
   '**/wallaby.{js,ts}',
   '**/playwright.config.{js,ts}',
   '**/.mocharc*',
+  '**/.zuul.yml',
+  '**/.coveralls.yml',
 
   // Build/bundle config
   '**/{rollup,rolldown,vite}.config.{js,ts,mjs}',
@@ -100,8 +109,9 @@ const defaultGlobs = [
   '**/*.png',
 
   // Linters and formatters
-  '**/eslint*.{json,jsonc,ts}',
-  '**/.eslintrc',
+  '**/eslint*.{json,jsonc,ts,js,mjs}',
+  '**/.eslintrc*',
+  '**/.eslintignore',
   '**/prettier.config*',
   '**/.prettier*',
   '**/.ox{lint,fmt}rc.json{,c}',
@@ -149,6 +159,11 @@ const defaultGlobs = [
   '**/*.coffee',
 
   // Misc
+  '**/KEYS',
+  '**/.spmignore',
+  '**/.editorconfig',
+  '**/component.json',
+  '**/*.jison',
   '**/.jscpd',
   '**/*.jst',
   '**/*.log',
