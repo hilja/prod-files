@@ -840,12 +840,9 @@ if (runAsScript) {
     process.exit(0)
   }
 
-  // Should have a path by now
+  // From this point forward we should have a path
   if (!args.path) {
-    throw bail(
-      undefined,
-      'Path not defined. Usage: prod-files <path-to-node-modules>'
-    )
+    throw bail(undefined, 'Path not defined. Usage: prod-files <path>')
   }
 
   const argsWithPath = /** @type {ArgsWithPath} */ (args)
