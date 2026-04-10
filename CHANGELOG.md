@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.2.0
+
+### Features
+
+- BREAKING: rename `--globs` to `--showGlobs`
+- Semi BREAKING: added few missing globs:
+  - `**/*.jsx` js variant
+  - `**/*.flow`
+  - `**/__typings__/`
+  - `**/bower.json`
+  - `**/node_modules/.bin/`
+  - `**/node_modules/**/man/`
+  - `**/**.{test,spec}.{js,mjs}` js variants
+  - `**/.zuul.yml`
+  - `**/.coveralls.yml`
+  - `**/eslint*.{js,mjs}` js variants
+  - `**/.eslintignore`
+  - `**/.eslintrc*` added the star to widen the net
+  - `**/KEYS`,
+  - `**/.spmignore`
+  - `**/.editorconfig`
+  - `**/component.json`
+  - `**/*.jison`
+- Add `--noGlobs` flag to disable all the default globs, so users can provide
+  their own with `--include`
+- Add `--dryRun` flag, nothing is deleted and the paths are printed out
+
+### Refactor
+
+- Remove unused `compactPaths` util
+- Shorter error message
+
+### Fix
+
+- Calculate size reduction percentage relative to original size
+
 ## 0.1.4
 
 - Use a custom walker, about 16% faster
