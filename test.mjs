@@ -156,41 +156,6 @@ void describe('findJunkFiles', () => {
   })
 })
 
-void describe('compactPaths', () => {
-  void test('drops nested paths when parent dir is already matched', async () => {
-    const { compactPaths } = await importFresh()
-
-    const actual = compactPaths([
-      '/node_modules/.pnpm/foo/docs/readme.md',
-      '/node_modules/.pnpm/foo/docs',
-      '/node_modules/.pnpm/foo/docs/api/index.md',
-      '/node_modules/.pnpm/foo/types.d.ts',
-      '/node_modules/.pnpm/foo/docs-extra',
-    ])
-
-    assert.deepStrictEqual(actual, [
-      '/node_modules/.pnpm/foo/docs',
-      '/node_modules/.pnpm/foo/docs-extra',
-      '/node_modules/.pnpm/foo/types.d.ts',
-    ])
-  })
-
-  void test('keeps sibling paths that only share a prefix', async () => {
-    const { compactPaths } = await importFresh()
-
-    const actual = compactPaths([
-      '/node_modules/.pnpm/foo/doc',
-      '/node_modules/.pnpm/foo/docs',
-      '/node_modules/.pnpm/foo/docs/readme.md',
-    ])
-
-    assert.deepStrictEqual(actual, [
-      '/node_modules/.pnpm/foo/doc',
-      '/node_modules/.pnpm/foo/docs',
-    ])
-  })
-})
-
 void describe('validateNodeModulesPath', () => {
   void test('resolves an existing relative path to an absolute path', async t => {
     seedMemfs({

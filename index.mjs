@@ -686,36 +686,6 @@ export function findJunkFiles(files, compiledGlobs = defaultCompiledGlobs) {
 }
 
 /**
- * Removes descendant paths when an ancestor path is already present
- * @param {string[]} paths - Paths to compact
- * @returns {string[]} A sorted list without redundant child paths
- */
-export function compactPaths(paths) {
-  /** @type {Set<string>} */
-  const seen = new Set()
-  /** @type {string[]} */
-  const compact = []
-
-  // Sorting guarantees parents are encountered before their nested children
-  for (const path of paths.toSorted()) {
-    let i = path.lastIndexOf('/')
-
-    while (i > 0) {
-      if (seen.has(path.slice(0, i))) break
-      i = path.lastIndexOf('/', i - 1)
-    }
-
-    // Skip this path if one of its ancestors has already been kept
-    if (i > 0) continue
-
-    seen.add(path)
-    compact.push(path)
-  }
-
-  return compact
-}
-
-/**
  * @typedef {object} WalkResult
  * @property {string[]} removed - Compacted list of removed paths
  * @property {number} removedBlocks - Removed disk usage in 512-byte blocks
