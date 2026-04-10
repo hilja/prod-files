@@ -204,8 +204,7 @@ function usage() {
     arguments, so don't use equals signs:
     $ pf -i "**/foo" -e "**/*tsconfig*.json" node_modules/.pnpm
 
-    Also with short-hand args the space between the key and the value can be
-    omitted:
+    In short-hand args the space between the key and the value can be omitted:
     $ pf -i"**/foo" node_modules/.pnpm
 
   Usage:
@@ -219,12 +218,14 @@ function usage() {
                   - yarn: 'node_modules' or 'node_modules/.store'
 
   Flags:
-    -i, --include Glob patterns of extra files to be removed. Uses node's
-                  path.matchesGlob(), with one exception: patterns ending with
-                  slash '**/foo/' are marked as directories.
+    -i, --include Extra custom glob pattern. Uses node's path.matchesGlob(),
+                  with one exception: patterns ending with slash '**/foo/' are
+                  marked as directories. Can have multiple.
 
     -e, --exclude Exclude existing glob patterns if the script is too
-                  aggressive. Must be exact match.
+                  aggressive. Must be exact match. Can have multiple.
+
+    -d, --dryRun  Nothing is removed and the paths are printed out.
 
     -h, --help    Prints out the help.
 
@@ -781,7 +782,8 @@ async function walkAndPrune(compiledGlobs, opts) {
       Promise.all(
         junkPaths.map(async p => {
           const size = opts.noSize ? 0 : await treeSize(p)
-          await fs.rm(p, { recursive: true, force: true })
+          // No rm if --dryRun
+          if (!opts.dryRun) await fs.rm(p, { recursive: true, force: true })
           return size
         })
       ),
@@ -793,7 +795,8 @@ async function walkAndPrune(compiledGlobs, opts) {
     // Subdirs that became empty after pruning their contents
     const emptyDirs = keptDirPaths.filter((_, i) => !walkResults[i])
     if (emptyDirs.length > 0) {
-      await Promise.all(emptyDirs.map(d => fs.rmdir(d)))
+      // No rm if --dryRun
+      if (!opts.dryRun) await Promise.all(emptyDirs.map(d => fs.rmdir(d)))
     }
 
     return keptFiles + keptDirPaths.length - emptyDirs.length > 0
@@ -813,7 +816,8 @@ async function walkAndPrune(compiledGlobs, opts) {
  */
 export async function prune(opts) {
   const startTime = Date.now()
-  log.info('Pruning:', opts.path)
+  const dryRunMsg = opts.dryRun ? ' (--dryRun, nothing deleted)' : ''
+  log.info(`Pruning${dryRunMsg}:`, opts.path)
 
   // Fire early so du runs concurrently with the walk
   const sizePromise = opts.noSize ? undefined : getSize(opts.path)
@@ -832,12 +836,14 @@ export async function prune(opts) {
     throw bail(undefined, err)
   }
 
-  printDiff({
-    itemCount: result.removed.length,
-    removedBytes: opts.noSize ? undefined : result.removedBlocks,
-    originalSize: sizePromise ? await sizePromise : undefined,
-    startTime,
-  })
+  if (!opts.dryRun) {
+    printDiff({
+      itemCount: result.removed.length,
+      removedBytes: opts.noSize ? undefined : result.removedBlocks,
+      originalSize: sizePromise ? await sizePromise : undefined,
+      startTime,
+    })
+  }
 
   return result.removed
 }
@@ -869,5 +875,11 @@ if (runAsScript) {
   const argsWithPath = /** @type {ArgsWithPath} */ (args)
 
   await validateNodeModulesPath(argsWithPath.path)
-  await prune(argsWithPath)
+  const pruned = await prune(argsWithPath)
+
+  // Print out paths if --dryRun
+  if (args.dryRun) {
+    if (pruned.length === 0) log.log('No results')
+    for (const item of pruned) log.log(item)
+  }
 }

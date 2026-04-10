@@ -302,6 +302,7 @@ void describe('prune', () => {
       path: '/workspace/node_modules/.pnpm',
       include: ['**/*.custom'],
       exclude: ['**/*tsconfig*.json'],
+      dryRun: false,
       help: false,
       showGlobs: false,
       noGlobs: false,
@@ -366,6 +367,7 @@ void describe('prune', () => {
       path: '/workspace/node_modules/.pnpm',
       include: ['**/*.custom'],
       exclude: [],
+      dryRun: false,
       help: false,
       showGlobs: false,
       noGlobs: false,
@@ -416,6 +418,7 @@ void describe('prune', () => {
       path: '/workspace/node_modules/.pnpm',
       include: ['**/*.custom'],
       exclude: [],
+      dryRun: false,
       help: false,
       showGlobs: false,
       noGlobs: false,
@@ -466,6 +469,7 @@ void describe('prune', () => {
       path: '/workspace/node_modules/.pnpm',
       include: ['**/*.custom'],
       exclude: ['**/*.js'],
+      dryRun: false,
       help: false,
       showGlobs: false,
       noGlobs: true,
@@ -495,6 +499,103 @@ void describe('prune', () => {
     )
     assert.strictEqual(
       memfs.existsSync('/workspace/node_modules/.pnpm/pkg/index.js'),
+      true
+    )
+  })
+
+  void test('dryRun: true returns paths but does not delete files', async t => {
+    seedMemfs({
+      '/workspace/node_modules/.pnpm/foo.ts': '',
+      '/workspace/node_modules/.pnpm/keep.js': '',
+      '/workspace/node_modules/.pnpm/custom.custom': '',
+    })
+
+    mockMemfsFs(t)
+    t.mock.method(console, 'info', () => {})
+    t.mock.method(console, 'table', () => {})
+
+    const { prune } = await importFresh()
+
+    const actual = await prune({
+      path: '/workspace/node_modules/.pnpm',
+      include: ['**/*.custom'],
+      exclude: [],
+      dryRun: true,
+      help: false,
+      showGlobs: false,
+      noGlobs: false,
+      noSize: true,
+      quiet: false,
+    })
+
+    // dryRun should return the same paths it would delete
+    assert.deepStrictEqual(actual.sort(), [
+      '/workspace/node_modules/.pnpm/custom.custom',
+      '/workspace/node_modules/.pnpm/foo.ts',
+    ])
+
+    // Files should NOT be deleted when dryRun is true
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/foo.ts'),
+      true
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/custom.custom'),
+      true
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/keep.js'),
+      true
+    )
+  })
+
+  void test('dryRun: true returns paths but does not delete nested dirs', async t => {
+    seedMemfs({
+      '/workspace/node_modules/.pnpm/pkg/a/b/file.custom': '',
+      '/workspace/node_modules/.pnpm/pkg/package.json': '{}',
+    })
+
+    mockMemfsFs(t)
+    t.mock.method(console, 'info', () => {})
+    t.mock.method(console, 'table', () => {})
+
+    const { prune } = await importFresh()
+
+    const actual = await prune({
+      path: '/workspace/node_modules/.pnpm',
+      include: ['**/*.custom'],
+      exclude: [],
+      dryRun: true,
+      help: false,
+      showGlobs: false,
+      noGlobs: false,
+      noSize: true,
+      quiet: false,
+    })
+
+    assert.deepStrictEqual(actual, [
+      '/workspace/node_modules/.pnpm/pkg/a/b/file.custom',
+    ])
+
+    // Nothing should be deleted when dryRun is true
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/a/b/file.custom'),
+      true
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/a/b'),
+      true
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/a'),
+      true
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg'),
+      true
+    )
+    assert.strictEqual(
+      memfs.existsSync('/workspace/node_modules/.pnpm/pkg/package.json'),
       true
     )
   })

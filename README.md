@@ -36,8 +36,7 @@ Examples:
   arguments, so don't use equals signs:
   $ pf -i "**/foo" -e "**/*tsconfig*.json" node_modules/.pnpm
 
-  Also with short-hand args the space between the key and the value can be
-  omitted:
+  In short-hand args the space between the key and the value can be omitted:
   $ pf -i"**/foo" node_modules/.pnpm
 
 Usage:
@@ -51,16 +50,22 @@ Arguments:
                 - yarn: 'node_modules' or 'node_modules/.store'
 
 Flags:
-  -i, --include Glob patterns of extra files to be removed. Uses node's
-                path.matchesGlob(), with one exception: patterns ending with
-                slash '**/foo/' are marked as directories.
+  -i, --include Extra custom glob pattern. Uses node's path.matchesGlob(),
+                with one exception: patterns ending with slash '**/foo/' are
+                marked as directories. Can have multiple.
 
   -e, --exclude Exclude existing glob patterns if the script is too
-                aggressive. Must be exact match.
+                aggressive. Must be exact match. Can have multiple.
+
+  -d, --dryRun  Nothing is removed and the paths are printed out.
 
   -h, --help    Prints out the help.
 
-  -g, --globs   Prints out the default globs.
+  -g, --showGlobs
+                Prints out the default globs.
+
+  --noGlobs     Disable default glob patterns, only use patterns from
+                --include.
 
   -n, --noSize  Skips the size calculation.
 
@@ -88,6 +93,43 @@ Different package manager `node_modules` paths:
 | yarn    | pnpm         | `node_modules/.store` | same as pnpm    |
 | yarn    | pnp          | no-op                 | no node_modules |
 
+### Provide your own globs
+
+The default globs can de disabled with `--noGlobs` flag, and only globs in
+`--include` are matched:
+
+```sh
+pnpm prod-files --noGlobs -i "**/custom/" -i "**/*.html" node_modules/.pnpm
+```
+
+### Dy run
+
+The `--dry-run` flag does not delete anything and prints out the paths:
+
+```sh
+pnpm prod-files --dryRun node_modules/.pnpm
+```
+
+### Use as a search
+
+You can use `prod-files` to search any dir if you set `--dryRun` and
+`--noGlobs`, and provide the search term in `--include`:
+
+```sh
+pnpm prod-files --noGlobs --dryRun --include="**/bower.json" node_modules/.pnpm
+
+Pruning (--dryRun, nothing deleted): node_modules/.pnpm
+node_modules/.pnpm/less@4.3.0/node_modules/less/bower.json
+node_modules/.pnpm/papaparse@5.5.3/node_modules/papaparse/bower.json
+node_modules/.pnpm/reflux@0.4.1_react@19.2.3/node_modules/reflux/bower.json
+node_modules/.pnpm/sprintf-js@1.0.3/node_modules/sprintf-js/bower.json
+```
+
+Sentry's `node_modules` has 4 bower config files :)
+
+> [!CAUTION]\
+> You're wielding `rm -rf` here, always remember to set `--dryRun`!
+
 ### Dockerfile example
 
 Simple yet somewhat realistic example usage in Dockerfile for an app named `foo`
@@ -102,8 +144,8 @@ COPY . ./
 RUN pnpm i --offline --frozen-lockfile
 RUN pnpm build
 RUN pnpm -F=foo --prod deploy /foo
-# Run it as the last command of the build step. NOTE: if you installed with
-# --prod flag, prod-files needs to be a prod dep. Or use pnpx/npx/yarn dlx
+# Run it as the last command of the build step.
+# NOTE: with --prod, the script needs to be a prod dep. Or use pnpx/npx/yarn dlx
 WORKDIR /foo
 RUN pnpm prod-files node_modules/.pnpm --noSize
 
@@ -115,13 +157,13 @@ WORKDIR /foo
 CMD node build/server.js
 ```
 
-Or use wget in if you don't have a package manager in your env (there are
-certain risks involved when you execute files downloaded from the net, if I get
+Or use `wget` if you don't have a package manager in your env (there are certain
+risks involved when you execute files downloaded from the net, if I get
 comprised that file can have anything):
 
 ```dockerfile
-RUN wget -O pf.js https://raw.githubusercontent.com/hilja/prod-files/refs/heads/main/index.mjs
-RUN node pf.js my-app/foo/node_modules/.pnpm
+RUN wget -O pf.mjs https://raw.githubusercontent.com/hilja/prod-files/refs/heads/main/index.mjs
+RUN node pf.mjs /foo/node_modules/.pnpm
 ```
 
 ## Development
@@ -140,7 +182,7 @@ pnpm test
 
 ### End to end tests
 
-In `test-project` directory has Sentry's `package.json`. You can run the script
+The `test-project` directory has Sentry's `package.json`. You can run the script
 against it to see how it does in real-world use and get some timing data.
 
 ```sh
@@ -150,13 +192,19 @@ pnpm test:e2e
 pnpm test:e2e --noSize
 ```
 
-The nuke command removes `node_modules` and prunes the store:
+If you're testing `--dryRun`, use `test:e2e:run`, it does not reinstall:
+
+```sh
+pnpm test:r2e:run
+```
+
+The nuke command removes `test-project/node_modules` and prunes the store:
 
 ```sh
 pnpm test:e2e:nuke
 ```
 
-There's also a simple script to print the weight of `test-project/node_modules/`
+There's also a simple script to print the weight of `test-project/node_modules`
 using `du`. You can run it before and after to see more detailed results:
 
 ```sh
