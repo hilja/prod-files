@@ -784,12 +784,12 @@ async function walkAndPrune(rootDir, compiledGlobs, trackSize) {
 }
 
 /**
- * @typedef {Args & { path: string }} ArgsWithRequiredPath
+ * @typedef {Args & { path: string }} ArgsWithPath
  */
 
 /**
  * Removes unneeded files from node_modules
- * @param {ArgsWithRequiredPath} opts
+ * @param {ArgsWithPath} opts
  */
 export async function prune(opts) {
   const startTime = Date.now()
@@ -848,7 +848,7 @@ if (runAsScript) {
     )
   }
 
-  const argsWithPath = /** @type {ArgsWithRequiredPath} */ (args)
+  const argsWithPath = /** @type {ArgsWithPath} */ (args)
 
   await validateNodeModulesPath(argsWithPath.path)
   await prune(argsWithPath)
