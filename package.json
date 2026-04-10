@@ -32,6 +32,7 @@
     "test": "node --test",
     "test:e2e": "cd test-project && bash prepare_test.sh && time node ../index.mjs node_modules/.pnpm",
     "test:e2e:nuke": "trash ./test-project/node_modules ./test-project/pnpm-lock.yaml && pnpm store prune",
+    "test:e2e:run": "cd test-project && node ../index.mjs node_modules/.pnpm",
     "test:e2e:weight": "du -sh ./test-project/node_modules/.pnpm | sort -h"
   },
   "devDependencies": {
