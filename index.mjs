@@ -326,10 +326,10 @@ async function treeSize(path) {
  * @param {number} originalSize
  * @param {number} prunedSize
  */
-function calcSize(originalSize, prunedSize) {
+export function calcSize(originalSize, prunedSize) {
   const diff = originalSize - prunedSize
   const diffMb = `${(diff / 1024).toFixed(1)} MB`
-  const diffPercent = `${((diff / prunedSize) * 100).toFixed(1)}%`
+  const diffPercent = `${((diff / originalSize) * 100).toFixed(1)}%`
 
   return `${diffPercent} (${diffMb})`
 }

@@ -213,6 +213,64 @@ void describe('printDiff', () => {
   })
 })
 
+void describe('calcSize', () => {
+  void test('calculates correct MB and percent for 50% reduction', async () => {
+    const { calcSize } = await importFresh()
+    const result = calcSize(2048, 1024)
+
+    // diff: 1024, percent: (1024/2048)*100 = 50.0%
+    assert.strictEqual(result, '50.0% (1.0 MB)')
+  })
+
+  void test('calculates correct MB and percent for 20% reduction', async () => {
+    const { calcSize } = await importFresh()
+    const result = calcSize(5120, 4096)
+
+    // diff: 1024, percent: (1024/5120)*100 = 20.0%
+    assert.strictEqual(result, '20.0% (1.0 MB)')
+  })
+
+  void test('calculates correct MB and percent for 33% reduction', async () => {
+    const { calcSize } = await importFresh()
+    const result = calcSize(1536, 1024)
+
+    // diff: 512, percent: (512/1536)*100 = 33.3%
+    assert.strictEqual(result, '33.3% (0.5 MB)')
+  })
+
+  void test('calculates correct MB and percent with 40% reduction', async () => {
+    const { calcSize } = await importFresh()
+    const result = calcSize(2560, 1536)
+
+    // diff: 1024, percent: (1024/2560)*100 = 40.0%
+    assert.strictEqual(result, '40.0% (1.0 MB)')
+  })
+
+  void test('calculates correct MB and percent for large reduction', async () => {
+    const { calcSize } = await importFresh()
+    const result = calcSize(10240, 1024)
+
+    // diff: 9216, percent: (9216/10240)*100 = 90.0%
+    assert.strictEqual(result, '90.0% (9.0 MB)')
+  })
+
+  void test('calculates correct MB and percent for small reduction', async () => {
+    const { calcSize } = await importFresh()
+    const result = calcSize(1050, 1024)
+
+    // diff: 26, percent: (26/1024)*100 = 2.539... = 2.5%
+    assert.strictEqual(result, '2.5% (0.0 MB)')
+  })
+
+  void test('formats result with percent followed by MB in parentheses', async () => {
+    const { calcSize } = await importFresh()
+    const result = calcSize(4096, 2048)
+
+    // Verify format: "X.X% (Y.Y MB)"
+    assert.match(result, /^\d+\.\d+%\s+\(\d+\.\d+\s+MB\)$/)
+  })
+})
+
 void describe('prune', () => {
   void test('removes junk files, respects include/exclude, and returns removed paths', async t => {
     seedMemfs({
