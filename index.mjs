@@ -370,6 +370,7 @@ export function printDiff({
  * @property {string} [path] - Path to node_modules
  * @property {string[]} include - New glob pattern
  * @property {string[]} exclude - Existing glob pattern
+ * @property {boolean} dryRun - Print out the files to be removed, no deletion
  * @property {boolean} help - Prints help
  * @property {boolean} showGlobs - Prints globs
  * @property {boolean} noGlobs - Disable default glob patterns
@@ -391,6 +392,7 @@ function handleArgs() {
       options: {
         include: { type: 'string', short: 'i', default: [], multiple: true },
         exclude: { type: 'string', short: 'e', default: [], multiple: true },
+        dryRun: { type: 'boolean', short: 'd', default: false },
         help: { type: 'boolean', short: 'h', default: false },
         showGlobs: { type: 'boolean', short: 'g', default: false },
         noGlobs: { type: 'boolean', default: false },
@@ -714,12 +716,11 @@ export function findJunkFiles(files, compiledGlobs = defaultCompiledGlobs) {
  * Parallel walker that finds junk, removes it, and cleans empty dirs in one
  * pass. Skips recursing into junk directories (implicit path compacting) and
  * removes empty ancestors bottom-up as the recursion unwinds.
- * @param {string} rootDir - The directory to walk
  * @param {CompiledGlobs} compiledGlobs - Precompiled glob matchers
- * @param {boolean} trackSize - Whether to collect byte sizes of removed items
+ * @param {ArgsWithPath} opts - The args object
  * @returns {Promise<WalkResult>}
  */
-async function walkAndPrune(rootDir, compiledGlobs, trackSize) {
+async function walkAndPrune(compiledGlobs, opts) {
   /** @type {string[]} */
   const removed = []
   let removedBlocks = 0
@@ -779,7 +780,7 @@ async function walkAndPrune(rootDir, compiledGlobs, trackSize) {
     const [junkSizes, walkResults] = await Promise.all([
       Promise.all(
         junkPaths.map(async p => {
-          const size = trackSize ? await treeSize(p) : 0
+          const size = opts.noSize ? 0 : await treeSize(p)
           await fs.rm(p, { recursive: true, force: true })
           return size
         })
@@ -798,7 +799,7 @@ async function walkAndPrune(rootDir, compiledGlobs, trackSize) {
     return keptFiles + keptDirPaths.length - emptyDirs.length > 0
   }
 
-  await walkDir(rootDir)
+  await walkDir(opts.path)
   return { removed, removedBlocks }
 }
 
@@ -826,7 +827,7 @@ export async function prune(opts) {
   /** @type {WalkResult} */
   let result
   try {
-    result = await walkAndPrune(opts.path, compiledGlobs, !opts.noSize)
+    result = await walkAndPrune(compiledGlobs, opts)
   } catch (err) {
     throw bail(undefined, err)
   }
