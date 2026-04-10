@@ -279,8 +279,7 @@ const style = (color, args) => args.map(a => styleText(color, String(a)))
  * @type {Logger}
  */
 export const log = {
-  error: (...a) =>
-    quiet ? undefined : console.error.apply(console, style('red', a)),
+  error: (...a) => console.error.apply(console, style('red', a)),
   info: (...a) =>
     quiet ? undefined : console.info.apply(console, style('blue', a)),
   log: (...a) => (quiet ? undefined : console.log.apply(console, a)),
@@ -377,7 +376,6 @@ export function printDiff({
  * Parse the command-line arguments into an object
  * @returns {Args}
  */
-
 function handleArgs() {
   try {
     const {
